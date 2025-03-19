@@ -34,3 +34,19 @@ func Suffle[T any, S ~[]T](s S) {
 		func(i, j int) { s[i], s[j] = s[j], s[i] },
 	)
 }
+
+func ArrayRange[T Number](size int, low, high T) []T {
+	a := make([]T, size)
+	for i := 0; i < size; i++ {
+		a[i] = Range(low, high)
+	}
+	return a
+}
+
+func Array[T Number](size int) []T {
+	a := make([]T, size)
+	for i := 0; i < size; i++ {
+		a[i] = T(rand.Int64())
+	}
+	return a
+}
