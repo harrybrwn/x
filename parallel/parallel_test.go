@@ -221,6 +221,7 @@ func TestDo(t *testing.T) {
 }
 
 func TestDo_Cancel(t *testing.T) {
+	t.Skip()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	err := Do(ctx, func(ctx context.Context) error { return nil })

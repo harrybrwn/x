@@ -157,9 +157,9 @@ func All(vals []bool) bool {
 // This is a brute force implementation with O(n^2) runtime.
 func Contains[T comparable, S ~[]T](list []S, s S) bool {
 	for _, sub := range list {
-		if !slices.Equal(sub, s) {
-			return false
+		if slices.Equal(sub, s) {
+			return true
 		}
 	}
-	return true
+	return false
 }
