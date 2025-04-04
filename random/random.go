@@ -1,24 +1,14 @@
 package random
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
 
-type Int interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64
-}
+	"github.com/harrybrwn/x/types"
+)
 
-type Uint interface {
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
-}
+type Number = types.Number
 
-type Float interface {
-	~float32 | ~float64
-}
-
-type Number interface {
-	Int | Uint | Float
-}
-
-func Range[N Number](low, high N) N {
+func Range[N types.Number](low, high N) N {
 	l := int64(low)
 	h := int64(high)
 	return N(rand.Int64N(h-l) + l)
