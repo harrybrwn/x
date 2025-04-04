@@ -1,10 +1,12 @@
 // See https://github.com/golang/go/issues/61898
+// This one is also sick https://github.com/spheric-cloud/xiter
 package xiter
 
 import (
 	"cmp"
 	"fmt"
 	"iter"
+	"slices"
 )
 
 // Filter2 returns an iterator over seq that only includes
@@ -105,25 +107,19 @@ func Chunk[E any](seq iter.Seq[E], n int) iter.Seq[[]E] {
 	if n < 1 {
 		panic("cannot be less than 1")
 	}
-
 	return func(yield func([]E) bool) {
-		var batch []E
-
+		batch := make([]E, 0, n)
 		for e := range seq {
-			if batch == nil {
-				batch = make([]E, 0, n)
-			}
 			batch = append(batch, e)
 			if len(batch) == n {
 				if !yield(batch) {
 					return
 				}
-				batch = nil
+				batch = batch[len(batch):]
 			}
 		}
-
 		if l := len(batch); l > 0 {
-			yield(batch[:l:l])
+			yield(batch[:l])
 		}
 	}
 }
@@ -195,4 +191,85 @@ func All(s iter.Seq[bool]) bool {
 		}
 	}
 	return true
+}
+
+func Window[T any](size int, seq iter.Seq[T]) iter.Seq[[]T] {
+	return func(yield func([]T) bool) {
+		window := make([]T, 0, size)
+		seq(func(e T) bool {
+			window = append(window, e)
+			if len(window) == size {
+				keepgoing := yield(window)
+				window = window[1:]
+				return keepgoing
+			}
+			return true
+		})
+	}
+}
+
+func Iter[S ~[]E, E any](s S) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
+func Reverse[E any](seq iter.Seq[E]) iter.Seq[E] {
+	rev := slices.Collect(seq)
+	slices.Reverse(rev)
+	return Iter(rev)
+}
+
+// Concat returns an iterator over the concatenation of the sequences.
+func Concat[V any](seqs ...iter.Seq[V]) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, seq := range seqs {
+			for e := range seq {
+				if !yield(e) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Reduce combines the values in seq using f.
+// For each value v in seq, it updates sum = f(sum, v)
+// and then returns the final sum.
+// For example, if iterating over seq yields v1, v2, v3,
+// Reduce returns f(f(f(sum, v1), v2), v3).
+func Reduce[Sum, V any](f func(Sum, V) Sum, sum Sum, seq iter.Seq[V]) Sum {
+	for v := range seq {
+		sum = f(sum, v)
+	}
+	return sum
+}
+
+func FilterErr[E any](seq iter.Seq2[E, error]) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for e, err := range seq {
+			if err == nil && !yield(e) {
+				break
+			}
+		}
+	}
+}
+
+func Take[V any](seq iter.Seq[V], n int) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		var i int
+		for v := range seq {
+			if i >= n {
+				return
+			}
+			i++
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }
