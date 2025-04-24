@@ -1,5 +1,21 @@
 package cobrautil
 
+import (
+	"strings"
+
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	cobra.AddTemplateFunc("indent", func(s string) string {
+		parts := strings.Split(s, "\n")
+		for i := range parts {
+			parts[i] = "    " + parts[i]
+		}
+		return strings.Join(parts, "\n")
+	})
+}
+
 // This is a template for cobra commands that more
 // closely imitates the style of the go command help
 // message.
