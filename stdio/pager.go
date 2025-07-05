@@ -11,13 +11,13 @@ import (
 )
 
 // Page will page the in reader and write it to the out writer by running pager program.
-func Page(pager string, out io.Writer, in io.Reader) error {
+func Page(pager string, out io.Writer, in io.Reader, execargs ...string) error {
 	args, err := shellwords.Parse(pager)
 	if err != nil {
 		return err
 	}
 	pager = args[0]
-	args = args[1:]
+	args = append(execargs, args[1:]...)
 
 	cmd := exec.Command(pager, args...)
 	cmd.Stdout = out

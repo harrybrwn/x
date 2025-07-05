@@ -40,3 +40,22 @@ func Array[T Number](size int) []T {
 	}
 	return a
 }
+
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// StringWithCharset will generate a random string of a set length using the
+// characters in the given character set.
+func StringWithCharset(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.IntN(len(charset))]
+	}
+	return string(b)
+}
+
+// String will generate a random string of a set length using the default
+// character set.
+func String(length int) string {
+	return StringWithCharset(length, charset)
+}

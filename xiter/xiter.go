@@ -78,6 +78,7 @@ func Map2[KIn, VIn, KOut, VOut any](seq iter.Seq2[KIn, VIn], f func(KIn, VIn) (K
 	}
 }
 
+// Keys will drop all values of the [iter.Seq2].
 func Keys[K, V any](s iter.Seq2[K, V]) iter.Seq[K] {
 	return func(yield func(K) bool) {
 		for k := range s {
@@ -88,6 +89,7 @@ func Keys[K, V any](s iter.Seq2[K, V]) iter.Seq[K] {
 	}
 }
 
+// Vals will drop all keys of the [iter.Seq2].
 func Vals[K, V any](s iter.Seq2[K, V]) iter.Seq[V] {
 	return func(yield func(V) bool) {
 		for _, v := range s {
@@ -166,6 +168,7 @@ func MergeFunc[V any](x, y iter.Seq[V], f func(V, V) int) iter.Seq[V] {
 	}
 }
 
+// MapStringers will convert each item in seq by calling .String on each item.
 func MapStringers[T fmt.Stringer](seq iter.Seq[T]) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		seq(func(e T) bool {
@@ -174,6 +177,7 @@ func MapStringers[T fmt.Stringer](seq iter.Seq[T]) iter.Seq[string] {
 	}
 }
 
+// Contains returns true if the sequence contains the given value.
 func Contains[V comparable](seq iter.Seq[V], v V) bool {
 	for item := range seq {
 		if item == v {
@@ -193,6 +197,9 @@ func All(s iter.Seq[bool]) bool {
 	return true
 }
 
+// Window will return a sequence of slices that represent a window of the input
+// sequence. If the sequence length is not divisible by size then the last
+// window will be short.
 func Window[T any](size int, seq iter.Seq[T]) iter.Seq[[]T] {
 	return func(yield func([]T) bool) {
 		window := make([]T, 0, size)
@@ -208,6 +215,7 @@ func Window[T any](size int, seq iter.Seq[T]) iter.Seq[[]T] {
 	}
 }
 
+// Iter iterates over a slice to return a sequence.
 func Iter[S ~[]E, E any](s S) iter.Seq[E] {
 	return func(yield func(E) bool) {
 		for _, v := range s {
@@ -218,6 +226,8 @@ func Iter[S ~[]E, E any](s S) iter.Seq[E] {
 	}
 }
 
+// Reverse the given sequence. This is slow because it collects everything in a
+// slice before converting back to a sequence.
 func Reverse[E any](seq iter.Seq[E]) iter.Seq[E] {
 	rev := slices.Collect(seq)
 	slices.Reverse(rev)
@@ -249,6 +259,7 @@ func Reduce[Sum, V any](f func(Sum, V) Sum, sum Sum, seq iter.Seq[V]) Sum {
 	return sum
 }
 
+// Filter out all pairs that contain an error and return only the values.
 func FilterErr[E any](seq iter.Seq2[E, error]) iter.Seq[E] {
 	return func(yield func(E) bool) {
 		for e, err := range seq {
@@ -259,6 +270,7 @@ func FilterErr[E any](seq iter.Seq2[E, error]) iter.Seq[E] {
 	}
 }
 
+// Take n items from the sequence.
 func Take[V any](seq iter.Seq[V], n int) iter.Seq[V] {
 	return func(yield func(V) bool) {
 		var i int
