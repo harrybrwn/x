@@ -12,3 +12,4 @@ Collection of go utility packages.
 * [tree](./tree) file trees
 * [types](./types) shared abstract interfaces and types
 * [xiter](./xiter) e**x**tended **iter**ation
+* [xmath](./xmath) e**x**tended **math**
