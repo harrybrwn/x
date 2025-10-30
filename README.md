@@ -13,3 +13,4 @@ Collection of go utility packages.
 * [types](./types) shared abstract interfaces and types
 * [xiter](./xiter) e**x**tended **iter**ation
 * [xmath](./xmath) e**x**tended **math**
+* [list](./list) a port of `container/list` with generics

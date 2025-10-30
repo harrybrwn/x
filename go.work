@@ -4,6 +4,7 @@ use (
 	./array
 	./cobrautil
 	./ihash
+	./list
 	./parallel
 	./random
 	./session
