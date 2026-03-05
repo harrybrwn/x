@@ -73,7 +73,7 @@ func TestPragmas(t *testing.T) {
 		Scheme: "file",
 		Opaque: filepath.Join(t.TempDir(), "test.db"),
 	}
-	d, err := open(&uri, nil)
+	d, err := open(&uri, new(Config))
 	is.NoErr(err)
 	defer d.Close()
 	db := db.Simple(d)
@@ -86,6 +86,10 @@ func TestPragmas(t *testing.T) {
 	}
 	WithPragma(PragmaSynchronous, SynchronousExtra)(&c)
 	WithPragma(PragmaCacheSize, 69)(&c)
+	is.Equal(c.Pragmas, map[string]any{
+		"cache_size":      69,
+		PragmaSynchronous: SynchronousExtra,
+	})
 	err = c.pragmas(d)
 	if err != nil {
 		fmt.Printf("%+v\n", err)

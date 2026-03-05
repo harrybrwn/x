@@ -1,7 +1,11 @@
 github.com/harrybrwn/db v0.0.1 h1:19GbniEQ0Ke641mO546Nb/u0XtLIs18mNEYx8Lvlu44=
 github.com/harrybrwn/db v0.0.1/go.mod h1:+xPv0v8uECjpWuDQCs3e0vqHQEWMqUDdbMYte/5M9xA=
+github.com/harrybrwn/db v0.0.2-0.20250123064507-e7bcb4fd9363 h1:WD1KKW4NEDfjByxCHncB8ozqOtO7GuEE/SFGPTgB1Sg=
+github.com/harrybrwn/db v0.0.2-0.20250123064507-e7bcb4fd9363/go.mod h1:cyYY5ZnG/AXIPKCl0KNoXQqjd70zNr/T0ddLz5e3y4w=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/lib/pq v1.11.2 h1:x6gxUeu39V0BHZiugWe8LXZYZ+Utk7hSJGThs8sdzfs=
+github.com/lib/pq v1.11.2/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
 github.com/matryer/is v1.4.1 h1:55ehd8zaGABKLXQUe2awZ99BD/PTc2ls+KV/dXphgEQ=
 github.com/matryer/is v1.4.1/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
 github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=

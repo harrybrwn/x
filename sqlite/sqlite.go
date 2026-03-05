@@ -13,6 +13,9 @@ import (
 )
 
 func Open(location string, config *Config) (*sql.DB, error) {
+	if config == nil {
+		panic("sqlite: *Config is required to open a database")
+	}
 	config.logger = slog.New(slog.DiscardHandler)
 	query, err := config.query()
 	if err != nil {
@@ -84,10 +87,8 @@ func open(uri *url.URL, config *Config) (*sql.DB, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if config != nil {
-		if err = config.pragmas(db); err != nil {
-			return nil, err
-		}
+	if err = config.pragmas(db); err != nil {
+		return nil, err
 	}
 	return db, nil
 }
@@ -174,6 +175,20 @@ const (
 	SynchronousExtra
 )
 
+func (s Synchronous) String() string {
+	switch s {
+	case SynchronousOff:
+		return "OFF"
+	case SynchronousNormal:
+		return "NORMAL"
+	case SynchronousFull:
+		return "FULL"
+	case SynchronousExtra:
+		return "EXTRA"
+	}
+	return ""
+}
+
 func ListTablesNames(db db.DB) ([]string, error) {
 	rows, err := db.QueryContext(context.Background(), `SELECT tbl_name FROM sqlite_master WHERE type = 'table'`)
 	if err != nil {
@@ -201,5 +216,8 @@ func exec(c *Config, database *sql.DB, query string, args ...any) error {
 }
 
 func pragma(c *Config, database *sql.DB, name string, value any) error {
-	return exec(c, database, fmt.Sprintf("PRAGMA %s = %v", name, value))
+	query := fmt.Sprintf("PRAGMA %s=%v", name, value)
+	c.loggerOrDefault().Debug("executing pragma",
+		"query", query)
+	return exec(c, database, query)
 }

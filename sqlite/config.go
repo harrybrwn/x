@@ -43,6 +43,12 @@ func WithPragma(name string, value any) Option {
 	}
 }
 
+// WithSynchronous adds 'PRAGMA synchronous=<synchronous>' to the list of
+// startup pragmas.
+func WithSynchronous(synchronous Synchronous) Option {
+	return WithPragma(PragmaSynchronous, synchronous.String())
+}
+
 func ReadOnly(c *Config) { c.ReadOnly = true }
 
 func Cache(mode CacheMode) Option         { return WithCacheMode(mode) }
@@ -83,7 +89,7 @@ func (c *Config) query() (url.Values, error) {
 		return q, errors.Errorf("invalid cache configuration %d", c.Cache)
 	}
 	if c.Debug {
-		slog.Debug("sqlite: database URI query built",
+		c.loggerOrDefault().Debug("sqlite: database URI query built",
 			"string", q.Encode(),
 			"raw", fmt.Sprintf("%#v", q))
 	}
@@ -113,4 +119,11 @@ func (c *Config) pragmas(db *sql.DB) (err error) {
 		}
 	}
 	return nil
+}
+
+func (c *Config) loggerOrDefault() *slog.Logger {
+	if c.logger == nil {
+		return slog.Default()
+	}
+	return c.logger
 }
