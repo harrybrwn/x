@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Config holds all pre-connection database configuration info.
 type Config struct {
 	ReadOnly    bool
 	Cache       CacheMode
@@ -22,6 +23,7 @@ type Config struct {
 	logger *slog.Logger
 }
 
+// Option is functional way to setup a [Config].
 type Option func(c *Config)
 
 // JournalMode sets the database's journal_mode pragma.
@@ -30,7 +32,7 @@ func JournalMode(mode string) Option { return func(c *Config) { c.JournalMode = 
 // WalCheckpoint sets the database's wal_checkpoint pragma.
 func WalCheckpoint(n int) Option { return func(c *Config) { c.WalCheckpoint = &n } }
 
-// Pragma will add a database pragma.
+// WithPragma will add a database pragma.
 //
 // Calling Pragma("journal_mode", "WAL") will end up executing
 // PRAGMA journal_mode = WAL;
@@ -70,6 +72,8 @@ const (
 	CacheModePrivate
 )
 
+var ErrInvalidCacheMode = errors.New("invalid cache mode")
+
 func (c *Config) query() (url.Values, error) {
 	q := make(url.Values)
 	if c == nil {
@@ -86,7 +90,7 @@ func (c *Config) query() (url.Values, error) {
 	case CacheModePrivate:
 		q.Set("cache", "private")
 	default:
-		return q, errors.Errorf("invalid cache configuration %d", c.Cache)
+		return q, errors.Wrapf(ErrInvalidCacheMode, "unknown cache configuration %d", c.Cache)
 	}
 	if c.Debug {
 		c.loggerOrDefault().Debug("sqlite: database URI query built",
@@ -97,6 +101,12 @@ func (c *Config) query() (url.Values, error) {
 }
 
 func (c *Config) pragmas(db *sql.DB) (err error) {
+	if c.ReadOnly {
+		err = pragma(c, db, PragmaQueryOnly, 1)
+		if err != nil {
+			return err
+		}
+	}
 	if len(c.JournalMode) > 0 {
 		err = pragma(c, db, PragmaJournalMode, strings.ToUpper(c.JournalMode))
 		if err != nil {

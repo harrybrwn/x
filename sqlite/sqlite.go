@@ -1,9 +1,10 @@
+// Package sqlite has helpers for working with sqlite.
 package sqlite
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Open will open a database with an explicitly passed config.
 func Open(location string, config *Config) (*sql.DB, error) {
 	if config == nil {
 		panic("sqlite: *Config is required to open a database")
@@ -29,6 +31,7 @@ func Open(location string, config *Config) (*sql.DB, error) {
 	return open(&uri, config)
 }
 
+// OpenURI will accept a URL and options to open a new database.
 func OpenURI(uri *url.URL, opts ...Option) (*sql.DB, error) {
 	var config Config
 	config.logger = slog.New(slog.DiscardHandler)
@@ -43,6 +46,7 @@ func OpenURI(uri *url.URL, opts ...Option) (*sql.DB, error) {
 	return open(uri, &config)
 }
 
+// File will open a database file.
 func File(location string, opts ...Option) (*sql.DB, error) {
 	var config Config
 	config.logger = slog.New(slog.DiscardHandler)
@@ -61,6 +65,7 @@ func File(location string, opts ...Option) (*sql.DB, error) {
 	return open(&uri, &config)
 }
 
+// InMemory will open an in-memory database.
 func InMemory(opts ...Option) (*sql.DB, error) {
 	var config Config
 	config.logger = slog.New(slog.DiscardHandler)
@@ -93,118 +98,45 @@ func open(uri *url.URL, config *Config) (*sql.DB, error) {
 	return db, nil
 }
 
-const (
-	PragmaSynchronous    = "synchronous"
-	PragmaJournalMode    = "journal_mode"
-	PragmaWalCheckpoint  = "wal_checkpoint"
-	PragmaCacheSize      = "cache_size"
-	PragmaApplicationID  = "application_id"
-	PragmaAutoVacuum     = "auto_vacuum"
-	PragmaAutomaticIndex = "automatic_index"
-	PragmaDataVersion    = "data_version"
-	PragmaDatabaseList   = "database_list"
-)
-
-func GetPragma[T any](database db.DB, name string) (T, error) {
-	var v T
-	return v, getPragma(database, name, &v)
-}
-
-func GetJournalMode(database db.DB) (string, error) {
-	return GetPragma[string](database, PragmaJournalMode)
-}
-
-func GetPragmaSynchronous(database db.DB) (Synchronous, error) {
-	return GetPragma[Synchronous](database, PragmaSynchronous)
-}
-
-func GetPragmaCacheSize(database db.DB) (int64, error) {
-	return GetPragma[int64](database, PragmaCacheSize)
-}
-
-func GetWalCheckpoint(database db.DB) (int, int, int, error) {
-	var a, b, c int
-	return a, b, c, getPragma(database, PragmaWalCheckpoint, &a, &b, &c)
-}
-
-type DatabaseList struct {
-	Index    int
-	Name     string
-	Location string
-}
-
-func GetPragmaDatabaseList(database db.DB) ([]DatabaseList, error) {
-	rows, err := database.QueryContext(
-		context.Background(),
-		`PRAGMA `+PragmaDatabaseList,
-	)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	defer rows.Close()
-	res := make([]DatabaseList, 0)
-	for rows.Next() {
-		var dl DatabaseList
-		err = rows.Scan(&dl.Index, &dl.Name, &dl.Location)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		res = append(res, dl)
-	}
-	return res, nil
-}
-
-func getPragma(database db.DB, name string, dst ...any) error {
-	rows, err := database.QueryContext(
-		context.Background(),
-		`PRAGMA `+name,
-	)
-	if err != nil {
-		return err
-	}
-	return db.ScanOne(rows, dst...)
-}
-
-// See https://www.sqlite.org/pragma.html
-type Synchronous uint8
-
-const (
-	SynchronousOff Synchronous = iota
-	SynchronousNormal
-	SynchronousFull
-	SynchronousExtra
-)
-
-func (s Synchronous) String() string {
-	switch s {
-	case SynchronousOff:
-		return "OFF"
-	case SynchronousNormal:
-		return "NORMAL"
-	case SynchronousFull:
-		return "FULL"
-	case SynchronousExtra:
-		return "EXTRA"
-	}
-	return ""
-}
-
 func ListTablesNames(db db.DB) ([]string, error) {
-	rows, err := db.QueryContext(context.Background(), `SELECT tbl_name FROM sqlite_master WHERE type = 'table'`)
+	rows, err := db.QueryContext(context.Background(), `SELECT tbl_name FROM sqlite_schema WHERE type = 'table'`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	names := make([]string, 0)
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		names = append(names, name)
+	defer closeRows(db, rows)
+	return scanStrings(rows)
+}
+
+// SchemaType is a string enum for the 'sqlite_schema' type column.
+type SchemaType string
+
+const (
+	SchemaTypeTable   SchemaType = "table"
+	SchemaTypeIndex   SchemaType = "index"
+	SchemaTypeView    SchemaType = "view"
+	SchemaTypeTrigger SchemaType = "trigger"
+)
+
+// Schema represents a row from the 'sqlite_schema' table.
+type Schema struct {
+	Type      SchemaType
+	Name      string
+	TableName string
+	Rootpage  string
+	SQL       sql.NullString
+}
+
+// GetSchemas queries the 'sqlite_schema' table.
+func GetSchemas(db db.DB) ([]Schema, error) {
+	rows, err := db.QueryContext(
+		context.Background(),
+		`SELECT type,name,tbl_name,rootpage,sql FROM sqlite_schema`,
+	)
+	if err != nil {
+		return nil, err
 	}
-	return names, nil
+	defer closeRows(db, rows)
+	return autoscanRows[Schema](rows)
 }
 
 func exec(c *Config, database *sql.DB, query string, args ...any) error {
@@ -215,9 +147,16 @@ func exec(c *Config, database *sql.DB, query string, args ...any) error {
 	return errors.WithStack(err)
 }
 
-func pragma(c *Config, database *sql.DB, name string, value any) error {
-	query := fmt.Sprintf("PRAGMA %s=%v", name, value)
-	c.loggerOrDefault().Debug("executing pragma",
-		"query", query)
-	return exec(c, database, query)
+func closeRows(database any, rows io.Closer) {
+	err := rows.Close()
+	if err != nil {
+		var logger *slog.Logger
+		if loggerdb, ok := database.(interface{ Logger() *slog.Logger }); ok {
+			logger = loggerdb.Logger()
+		}
+		if logger == nil {
+			logger = slog.Default()
+		}
+		logger.Error("failed to close database rows", "error", err)
+	}
 }
